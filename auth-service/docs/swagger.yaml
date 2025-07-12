@@ -1,0 +1,77 @@
+definitions:
+  domain.Usuario:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      nome:
+        maxLength: 100
+        minLength: 3
+        type: string
+      senha:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - email
+    - nome
+    - senha
+    type: object
+  error.AppError:
+    properties:
+      code:
+        description: 'ex.: USER_NOT_FOUND'
+        type: string
+      message:
+        description: msg “safe” para cliente
+        type: string
+    type: object
+  schema.UsuarioCreatedEnvelope:
+    properties:
+      data:
+        properties:
+          id:
+            type: integer
+        type: object
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /usuarios:
+    post:
+      consumes:
+      - application/json
+      description: Cadastra um novo usuário no sistema
+      parameters:
+      - description: Dados do usuário
+        in: body
+        name: usuario
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Usuario'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Usuário cadastrado com sucesso
+          schema:
+            $ref: '#/definitions/schema.UsuarioCreatedEnvelope'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "409":
+          description: 'Conflito: usuário já existe'
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Cadastrar um novo usuário
+      tags:
+      - Usuários
+swagger: "2.0"
