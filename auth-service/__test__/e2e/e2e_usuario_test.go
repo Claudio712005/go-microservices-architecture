@@ -2,14 +2,11 @@ package e2e
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
-
-	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/config"
-	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/router"
 )
 
 func performRequest(r http.Handler, method, path string, body []byte) *httptest.ResponseRecorder {
@@ -21,31 +18,70 @@ func performRequest(r http.Handler, method, path string, body []byte) *httptest.
 }
 
 func TestCadastroUsuario_E2E(t *testing.T) {
-
-	t.Setenv("DB_HOST", "")
-	t.Setenv("DB_PORT", "")
-	t.Setenv("DB_USER", "")
-	t.Setenv("DB_PASSWORD", "")
-	t.Setenv("DB_NAME", "")
-	t.Setenv("DB_NAME_TEST", "")
-
-	config.ConectarBanco(true)
-
-	r := gin.Default()
-	router.SetupRoutes(r)
-
-	t.Run("Deve criar um usuário com sucesso", func(t *testing.T) {
-		usuarioJSON := []byte(`{
+    t.Run("Cadastrar usuário com dados válidos", func(t *testing.T) {
+        usuarioJSON := []byte(`{
             "nome":  "Cláudio Araújo",
             "email": "teste@gmail.com",
             "senha": "123456"
         }`)
 
+        w := performRequest(r, http.MethodPost, "/api/v1/usuarios", usuarioJSON)
+
+        if w.Code != http.StatusCreated {
+            t.Fatalf("Esperado status 201, obtido %d – body: %s", w.Code, w.Body.String())
+        }
+
+        var resp struct {
+            Data struct {
+                ID uint32 `json:"id"`
+            } `json:"data"`
+        }
+
+        if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+            t.Fatalf("Falha ao decodificar resposta JSON: %v", err)
+        }
+
+        if resp.Data.ID == 0 {
+            t.Fatalf("ID do usuário retornado é inválido")
+        }
+    })
+
+	t.Run("Cadastrar usuário com email já existente", func(t *testing.T) {
+		usuarioJSON := []byte(`{
+			"nome":  "Cláudio Araújo",
+			"email": "teste@gmail.com",
+			"senha": "123456"
+		}`)
 		w := performRequest(r, http.MethodPost, "/api/v1/usuarios", usuarioJSON)
 
-		if w.Code != http.StatusCreated {
-			t.Fatalf("Esperado status 201, mas obteve %d – body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusConflict {
+			t.Fatalf("Esperado status 409, obtido %d – body: %s", w.Code, w.Body.String())
 		}
-	
+	})
+
+	t.Run("Cadastrar usuário com dados inválidos", func(t *testing.T) {
+		usuarioJSON := []byte(`{
+			"nome":  "",
+			"email": "email-invalido",
+			"senha": "123"
+		}`)
+
+		w := performRequest(r, http.MethodPost, "/api/v1/usuarios", usuarioJSON)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("Esperado status 400, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Message string `json:"message"`
+		}
+
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("Falha ao decodificar resposta JSON: %v", err)
+		}
+
+		if resp.Message == "" {
+			t.Fatal("Mensagem de erro não foi retornada")
+		}
 	})
 }

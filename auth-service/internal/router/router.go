@@ -16,7 +16,6 @@ type Route struct {
 // SetupRoutes inicializa as rotas da aplicação
 func SetupRoutes(r *gin.Engine) {
 
-	r.Use(gin.Logger())
 	r.Use(middleware.RecoveryMiddleware())
 	r.Use(middleware.ErrorMiddleware())
 

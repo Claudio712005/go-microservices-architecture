@@ -5,33 +5,54 @@ import (
 	"log"
 	"os"
 
+	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/domain"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
-func ConectarBanco(teste bool) {
+func ConectarBanco() {
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
-	var dbName string
-
-	if teste {
-		dbName = os.Getenv("DB_NAME_TEST")
-	} else {
-		dbName = os.Getenv("DB_NAME")
-	}
+	dbName := os.Getenv("DB_NAME")
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user, password, host, port, dbName)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatal("Erro ao conectar ao banco de dados", err)
 	}
 
+	if os.Getenv("APP_ENV") == "test" {
+		if err := db.AutoMigrate(&domain.Usuario{}); err != nil {
+			log.Fatal("Erro ao migrar o banco de dados", err)
+		}
+	}
+
 	DB = db
-	log.Println("Conexão com o banco de dados estabelecida com sucesso")
+}
+
+// ResetTestDB limpa o banco de dados de testes, removendo todos os dados
+func ResetTestDB() {
+    if DB == nil {
+        return
+    }
+
+    DB.Exec("SET FOREIGN_KEY_CHECKS = 0")
+
+    var tables []string
+    DB.Raw("SHOW TABLES").Scan(&tables)
+
+    for _, tbl := range tables {
+        DB.Exec("TRUNCATE TABLE " + tbl)
+    }
+
+    DB.Exec("SET FOREIGN_KEY_CHECKS = 1")
 }
