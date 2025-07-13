@@ -9,7 +9,7 @@ import (
 )
 
 // GerarToken gera um token JWT para o usuário com o ID fornecido
-func GerarToken(usuarioID uint64) (string, error) {
+func GerarToken(usuarioID uint32) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"usuario_id": usuarioID,
 		"exp":        time.Now().Add(time.Hour * 24).Unix(), 

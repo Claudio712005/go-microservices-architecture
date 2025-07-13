@@ -1,4 +1,16 @@
+basePath: /api/v1
 definitions:
+  domain.Login:
+    properties:
+      email:
+        type: string
+      senha:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - senha
+    type: object
   domain.Usuario:
     properties:
       email:
@@ -27,18 +39,32 @@ definitions:
         description: msg “safe” para cliente
         type: string
     type: object
+  schema.LoginResponseEnvelope:
+    description: Resposta do login do usuário
+    properties:
+      data:
+        properties:
+          token:
+            type: string
+          usuario:
+            $ref: '#/definitions/domain.Usuario'
+        type: object
+    type: object
   schema.UsuarioCreatedEnvelope:
+    description: Resposta do usuário criado
     properties:
       data:
         properties:
           id:
             type: integer
         type: object
-      message:
-        type: string
     type: object
+host: localhost:8080
 info:
   contact: {}
+  description: Este é o serviço de autenticação do sistema de microserviços.
+  title: Auth Service API
+  version: "1.0"
 paths:
   /usuarios:
     post:
@@ -72,6 +98,44 @@ paths:
           schema:
             $ref: '#/definitions/error.AppError'
       summary: Cadastrar um novo usuário
+      tags:
+      - Usuários
+  /usuarios/login:
+    post:
+      consumes:
+      - application/json
+      description: Realiza o login de um usuário e retorna um token JWT
+      parameters:
+      - description: Dados de login do usuário
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login realizado com sucesso
+          schema:
+            $ref: '#/definitions/schema.LoginResponseEnvelope'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "401":
+          description: Credenciais inválidas
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Realizar login de um usuário
       tags:
       - Usuários
 swagger: "2.0"

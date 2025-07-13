@@ -66,9 +66,83 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/usuarios/login": {
+            "post": {
+                "description": "Realiza o login de um usuário e retorna um token JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Realizar login de um usuário",
+                "parameters": [
+                    {
+                        "description": "Dados de login do usuário",
+                        "name": "login",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.Login"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Login realizado com sucesso",
+                        "schema": {
+                            "$ref": "#/definitions/schema.LoginResponseEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciais inválidas",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "domain.Login": {
+            "type": "object",
+            "required": [
+                "email",
+                "senha"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "senha": {
+                    "type": "string",
+                    "minLength": 6
+                }
+            }
+        },
         "domain.Usuario": {
             "type": "object",
             "required": [
@@ -108,7 +182,25 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.LoginResponseEnvelope": {
+            "description": "Resposta do login do usuário",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "token": {
+                            "type": "string"
+                        },
+                        "usuario": {
+                            "$ref": "#/definitions/domain.Usuario"
+                        }
+                    }
+                }
+            }
+        },
         "schema.UsuarioCreatedEnvelope": {
+            "description": "Resposta do usuário criado",
             "type": "object",
             "properties": {
                 "data": {
@@ -118,9 +210,6 @@ const docTemplate = `{
                             "type": "integer"
                         }
                     }
-                },
-                "message": {
-                    "type": "string"
                 }
             }
         }
@@ -129,12 +218,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "Auth Service API",
+	Description:      "Este é o serviço de autenticação do sistema de microserviços.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

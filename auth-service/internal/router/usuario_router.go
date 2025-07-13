@@ -13,5 +13,11 @@ func getUsuarioRoutes() []Route {
 			HandlerFunc: handler.HandleCadastrarUsuario,
 			HasAuth:     false,
 		},
+		{
+			Path: "/login",
+			Method:      "POST",
+			HandlerFunc: handler.HandleLoginUsuario,
+			HasAuth:     false,
+		},
 	}
 }
