@@ -41,7 +41,7 @@ func ValidarToken(tokenString string) error {
 	return nil
 }
 
-func ExtrairUsuarioID(tokenString string) (uint64, error) {
+func ExtrairUsuarioID(tokenString string) (uint32, error) {
 
 	tokenString = tokenString[len("Bearer "):] 
 
@@ -55,7 +55,7 @@ func ExtrairUsuarioID(tokenString string) (uint64, error) {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		if usuarioID, ok := claims["usuario_id"].(float64); ok {
-			return uint64(usuarioID), nil
+			return uint32(usuarioID), nil
 		}
 	}
 

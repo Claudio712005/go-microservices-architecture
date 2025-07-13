@@ -2,10 +2,12 @@ package handler
 
 import (
 	"fmt"
-    _ "github.com/Claudio712005/go-microservices-architecture/auth-service/internal/schema"
+	"strconv"
+
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/config"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/domain"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/repository"
+	_ "github.com/Claudio712005/go-microservices-architecture/auth-service/internal/schema"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/error"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/response"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/security"
@@ -119,7 +121,117 @@ func HandleLoginUsuario(c *gin.Context) {
 	usuario.Senha = ""
 
 	response.OK(c, gin.H{
-		"token": token,
+		"token":   token,
 		"usuario": usuario,
 	})
+}
+
+// HandleBuscarUsuarioLogado godoc: Buscar informações do usuário logado
+// @Summary Buscar informações do usuário logado
+// @Description Busca as informações do usuário logado a partir do token JWT
+// @Tags Usuários
+// @Accept json
+// @Produce json
+// @Success 200 {object} schema.UsuarioEnvelope "Usuário encontrado"
+// @Failure 401 {object} error.AppError "Token inválido ou expirado"
+// @Failure 404 {object} error.AppError "Usuário não encontrado"
+// @Failure 500 {object} error.AppError "Erro interno do servidor"
+// @Router /usuarios/logado [get]
+// HandleBuscarUsuarioLogado é o handler para buscar informações do usuário logado
+func HandleBuscarUsuarioLogado(c *gin.Context) {
+	idToken, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
+	if err != nil {
+		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
+		return
+	}
+
+	repositorio := repository.NewUsuarioRepository(config.DB)
+	usuario, err := repositorio.BuscarUsuarioPorID(idToken)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário no banco de dados", err))
+		return
+	}
+
+	response.OK(c, usuario)
+}
+
+// HandleAlterarUsuario godoc: Alterar informações do usuário
+// @Summary Alterar informações do usuário
+// @Description Altera as informações do usuário logado
+// @Tags Usuários
+// @Accept json
+// @Produce json
+// @Param id path string true "ID do usuário"
+// @Param usuario body domain.Usuario true "Dados do usuário"
+// @Success 200 {object} schema.UsuarioEnvelope "Usuário atualizado com sucesso"
+// @Failure 400 {object} error.AppError "Requisição inválida"
+// @Failure 401 {object} error.AppError "Token inválido ou expirado"
+// @Failure 403 {object} error.AppError "Acesso negado"
+// @Failure 404 {object} error.AppError "Usuário não encontrado"
+// @Failure 500 {object} error.AppError "Erro interno do servidor"
+// @Router /usuarios/{id} [put]
+// HandleAlterarUsuario é o handler para alterar as informações de um usuário
+func HandleAlterarUsuario(c *gin.Context) {
+	id := c.Param("id")
+
+	idUsuario, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		c.Error(error.Validation("INVALID_ID", "ID do usuário inválido", err))
+		return
+	}
+
+	tokenID, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
+	if err != nil {
+		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
+		return
+	}
+
+	if tokenID != uint32(idUsuario) {
+		c.Error(error.Forbidden("FORBIDDEN", "você não tem permissão para alterar este usuário", nil))
+		return
+	}
+
+	var usuario domain.Usuario
+	if err := c.ShouldBindJSON(&usuario); err != nil {
+		c.Error(error.Validation("INVALID_BODY", "corpo da requisição inválido", err))
+		return
+	}
+
+	usuario.ID = uint32(idUsuario)
+
+	if err := usuario.Validar("atualizar"); err != nil {
+		c.Error(error.Validation("INVALID_INPUT", err.Error(), err))
+		return
+	}
+
+	repositorio := repository.NewUsuarioRepository(config.DB)
+
+	usuarioExistente, err := repositorio.BuscarUsuarioPorEmail(usuario.Email)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário por e-mail no banco de dados", err))
+		return
+	}
+
+	if usuarioExistente != nil && usuarioExistente.ID != usuario.ID {
+		c.Error(error.Conflict("USER_ALREADY_EXISTS", "já existe um usuário cadastrado com este endereço de e-mail", nil))
+		return
+	}
+
+	usuarioSalvo, err := repositorio.EditarUsuario(usuario)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao atualizar usuário no banco de dados", err))
+		return
+	}
+
+	usuarioSalvo.Senha = ""
+
+	response.OK(c, *usuarioSalvo)
 }

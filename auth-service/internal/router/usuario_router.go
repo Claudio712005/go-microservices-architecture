@@ -19,5 +19,17 @@ func getUsuarioRoutes() []Route {
 			HandlerFunc: handler.HandleLoginUsuario,
 			HasAuth:     false,
 		},
+		{
+			Path: "/logado",
+			Method:      "GET",
+			HandlerFunc: handler.HandleBuscarUsuarioLogado,
+			HasAuth:     true,
+		},
+		{
+			Path: "/:id",
+			Method:      "PUT",
+			HandlerFunc: handler.HandleAlterarUsuario,
+			HasAuth:     true,
+		}, 
 	}
 }

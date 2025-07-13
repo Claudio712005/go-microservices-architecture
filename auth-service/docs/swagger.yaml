@@ -59,6 +59,15 @@ definitions:
             type: integer
         type: object
     type: object
+  schema.UsuarioEnvelope:
+    description: Resposta do usuário criado
+    properties:
+      data:
+        properties:
+          usuario:
+            $ref: '#/definitions/domain.Usuario'
+        type: object
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -98,6 +107,80 @@ paths:
           schema:
             $ref: '#/definitions/error.AppError'
       summary: Cadastrar um novo usuário
+      tags:
+      - Usuários
+  /usuarios/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Altera as informações do usuário logado
+      parameters:
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do usuário
+        in: body
+        name: usuario
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Usuario'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Usuário atualizado com sucesso
+          schema:
+            $ref: '#/definitions/schema.UsuarioEnvelope'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "403":
+          description: Acesso negado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Alterar informações do usuário
+      tags:
+      - Usuários
+  /usuarios/logado:
+    get:
+      consumes:
+      - application/json
+      description: Busca as informações do usuário logado a partir do token JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Usuário encontrado
+          schema:
+            $ref: '#/definitions/schema.UsuarioEnvelope'
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Buscar informações do usuário logado
       tags:
       - Usuários
   /usuarios/login:

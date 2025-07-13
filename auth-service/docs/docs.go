@@ -67,6 +67,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/usuarios/logado": {
+            "get": {
+                "description": "Busca as informações do usuário logado a partir do token JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Buscar informações do usuário logado",
+                "responses": {
+                    "200": {
+                        "description": "Usuário encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/schema.UsuarioEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/usuarios/login": {
             "post": {
                 "description": "Realiza o login de um usuário e retorna um token JWT",
@@ -106,6 +147,77 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Credenciais inválidas",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/usuarios/{id}": {
+            "put": {
+                "description": "Altera as informações do usuário logado",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Alterar informações do usuário",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dados do usuário",
+                        "name": "usuario",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.Usuario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Usuário atualizado com sucesso",
+                        "schema": {
+                            "$ref": "#/definitions/schema.UsuarioEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado",
                         "schema": {
                             "$ref": "#/definitions/error.AppError"
                         }
@@ -208,6 +320,20 @@ const docTemplate = `{
                     "properties": {
                         "id": {
                             "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "schema.UsuarioEnvelope": {
+            "description": "Resposta do usuário criado",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "usuario": {
+                            "$ref": "#/definitions/domain.Usuario"
                         }
                     }
                 }

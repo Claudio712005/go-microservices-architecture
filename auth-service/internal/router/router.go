@@ -26,13 +26,18 @@ func SetupRoutes(r *gin.Engine) {
 }
 
 func registerRoutes(g *gin.RouterGroup, routes []Route) {
-	for _, rt := range routes {	
-		handlers := []gin.HandlerFunc{rt.HandlerFunc}
+	for _, rt := range routes {
 
 		if rt.HasAuth {
-			// ...
-		}
+			g.Handle(
+				rt.Method,
+				rt.Path,
+				middleware.AutenticacaoMiddleware(),
+				rt.HandlerFunc,
+			)
+		} else {
 
-		g.Handle(rt.Method, rt.Path, handlers...)
+			g.Handle(rt.Method, rt.Path, rt.HandlerFunc)
+		}
 	}
 }

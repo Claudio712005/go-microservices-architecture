@@ -9,6 +9,8 @@ import (
 type UsuarioRepository interface {
 	CadastrarUsuario(usuario domain.Usuario) (uint32, error)
 	BuscarUsuarioPorEmail(email string) (*domain.Usuario, error)
+	BuscarUsuarioPorID(id uint32) (*domain.Usuario, error)
+	EditarUsuario(usuario domain.Usuario) (*domain.Usuario, error)
 }
 
 type usuarioRepository struct {
@@ -35,6 +37,36 @@ func (r *usuarioRepository) BuscarUsuarioPorEmail(email string) (*domain.Usuario
 	if err := r.db.Where("email = ?", email).First(&usuario).Error; err != nil {
 		return nil, err
 	}
+
+	return &usuario, nil
+}
+
+// BuscarUsuarioPorID busca um usuário pelo ID no repositório
+func (r *usuarioRepository) BuscarUsuarioPorID(id uint32) (*domain.Usuario, error) {
+	var usuario domain.Usuario
+
+	if err := r.db.Select("id, nome, email").First(&usuario, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &usuario, nil
+}
+
+// EditarUsuario atualiza os dados de um usuário no repositório
+func (r *usuarioRepository) EditarUsuario(usuario domain.Usuario) (*domain.Usuario, error) {
+	if usuario.ID == 0 {
+		return &domain.Usuario{}, gorm.ErrRecordNotFound
+	}
+
+	update := map[string]interface{}{
+		"nome":  usuario.Nome,
+		"email": usuario.Email,
+	}
+
+	if err := r.db.Model(&domain.Usuario{}).Where("id = ?", usuario.ID).Updates(update).Error; err != nil {
+		return &domain.Usuario{}, err
+	}
+
 
 	return &usuario, nil
 }
