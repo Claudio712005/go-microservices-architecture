@@ -341,7 +341,7 @@ func TestAlterarUsuario(t *testing.T) {
 	})
 }
 
-func TestAlterarSenhaUsuarioLogado(t *testing.T){
+func TestAlterarSenhaUsuarioLogado(t *testing.T) {
 
 	t.Run("Alterar senha com dados válidos", func(t *testing.T) {
 		senhaJSON := []byte(`{
@@ -423,4 +423,43 @@ func TestAlterarSenhaUsuarioLogado(t *testing.T){
 			t.Fatalf("Esperado status 403, obtido %d – body: %s", w.Code, w.Body.String())
 		}
 	})
+}
+
+func TestDeletarUsuario(t *testing.T) {
+
+	t.Run("Deletar usuário com token inválido", func(t *testing.T) {
+		w := performRequest(r, http.MethodDelete, "/api/v1/usuarios/1", nil, http.Header{
+			"Authorization": []string{"Bearer tokenInvalido"}})
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("Esperado status 401, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Deletar usuário sem token", func(t *testing.T) {
+		w := performRequest(r, http.MethodDelete, "/api/v1/usuarios/1", nil, nil)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("Esperado status 401, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Deletar usuário com ID inválido", func(t *testing.T) {
+		w := performRequest(r, http.MethodDelete, "/api/v1/usuarios/9999", nil, http.Header{
+			"Authorization": []string{"Bearer " + token}})
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("Esperado status 403, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Deletar usuário com token válido", func(t *testing.T) {
+		w := performRequest(r, http.MethodDelete, "/api/v1/usuarios/1", nil, http.Header{
+			"Authorization": []string{"Bearer " + token}})
+
+		if w.Code != http.StatusNoContent {
+			t.Fatalf("Esperado status 204, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
 }

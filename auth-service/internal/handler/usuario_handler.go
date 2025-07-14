@@ -308,3 +308,52 @@ func HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
 	})
 
 }
+
+// HandleDeletarUsuario godoc: Deletar um usuário
+// @Summary Deletar um usuário
+// @Description Deleta um usuário do sistema
+// @Tags Usuários
+// @Accept json
+// @Produce json
+// @Param id path string true "ID do usuário"
+// @Success 204 {object} interface{} "Usuário deletado com sucesso"
+// @Failure 400 {object} error.AppError "Requisição inválida"
+// @Failure 401 {object} error.AppError "Token inválido ou expirado"
+// @Failure 403 {object} error.AppError "Acesso negado"
+// @Failure 404 {object} error.AppError "Usuário não encontrado"
+// @Failure 500 {object} error.AppError "Erro interno do servidor"
+// @Router /usuarios/{id} [delete]
+// HandleDeletarUsuario é o handler para deletar um usuário
+func HandleDeletarUsuario(c *gin.Context) {
+	
+	id := c.Param("id")
+
+	idUsuario, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		c.Error(error.Validation("INVALID_ID", "ID do usuário inválido", err))
+		return
+	}
+
+	tokenID, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
+	if err != nil {
+		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
+		return
+	}
+
+	if tokenID != uint32(idUsuario) {
+		c.Error(error.Forbidden("FORBIDDEN", "você não tem permissão para deletar este usuário", nil))
+		return
+	}
+
+	repositorio := repository.NewUsuarioRepository(config.DB)
+	if err := repositorio.DeletarUsuario(uint32(idUsuario)); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao deletar usuário no banco de dados", err))
+		return
+	}
+
+	response.NoContent(c)
+}

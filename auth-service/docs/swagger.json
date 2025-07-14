@@ -102,6 +102,70 @@
                 }
             }
         },
+        "/usuarios/logado/senha": {
+            "put": {
+                "description": "Altera a senha do usuário logado",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Alterar senha do usuário logado",
+                "parameters": [
+                    {
+                        "description": "Nova senha do usuário",
+                        "name": "senha",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.Senha"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Senha atualizada com sucesso",
+                        "schema": {
+                            "$ref": "#/definitions/schema.MessageEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/usuarios/login": {
             "post": {
                 "description": "Realiza o login de um usuário e retorna um token JWT",
@@ -229,6 +293,64 @@
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Deleta um usuário do sistema",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Deletar um usuário",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID do usuário",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Usuário deletado com sucesso",
+                        "schema": {}
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido ou expirado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor",
+                        "schema": {
+                            "$ref": "#/definitions/error.AppError"
+                        }
+                    }
+                }
             }
         }
     },
@@ -245,6 +367,25 @@
                 },
                 "senha": {
                     "type": "string",
+                    "minLength": 6
+                }
+            }
+        },
+        "domain.Senha": {
+            "type": "object",
+            "required": [
+                "senha_atual",
+                "senha_nova"
+            ],
+            "properties": {
+                "senha_atual": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
+                },
+                "senha_nova": {
+                    "type": "string",
+                    "maxLength": 100,
                     "minLength": 6
                 }
             }
@@ -300,6 +441,20 @@
                         },
                         "usuario": {
                             "$ref": "#/definitions/domain.Usuario"
+                        }
+                    }
+                }
+            }
+        },
+        "schema.MessageEnvelope": {
+            "description": "Resposta do usuário criado",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string"
                         }
                     }
                 }

@@ -11,6 +11,20 @@ definitions:
     - email
     - senha
     type: object
+  domain.Senha:
+    properties:
+      senha_atual:
+        maxLength: 100
+        minLength: 6
+        type: string
+      senha_nova:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - senha_atual
+    - senha_nova
+    type: object
   domain.Usuario:
     properties:
       email:
@@ -48,6 +62,15 @@ definitions:
             type: string
           usuario:
             $ref: '#/definitions/domain.Usuario'
+        type: object
+    type: object
+  schema.MessageEnvelope:
+    description: Resposta do usuário criado
+    properties:
+      data:
+        properties:
+          message:
+            type: string
         type: object
     type: object
   schema.UsuarioCreatedEnvelope:
@@ -110,6 +133,45 @@ paths:
       tags:
       - Usuários
   /usuarios/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deleta um usuário do sistema
+      parameters:
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Usuário deletado com sucesso
+          schema: {}
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "403":
+          description: Acesso negado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Deletar um usuário
+      tags:
+      - Usuários
     put:
       consumes:
       - application/json
@@ -181,6 +243,48 @@ paths:
           schema:
             $ref: '#/definitions/error.AppError'
       summary: Buscar informações do usuário logado
+      tags:
+      - Usuários
+  /usuarios/logado/senha:
+    put:
+      consumes:
+      - application/json
+      description: Altera a senha do usuário logado
+      parameters:
+      - description: Nova senha do usuário
+        in: body
+        name: senha
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Senha'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Senha atualizada com sucesso
+          schema:
+            $ref: '#/definitions/schema.MessageEnvelope'
+        "400":
+          description: Requisição inválida
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "401":
+          description: Token inválido ou expirado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "403":
+          description: Acesso negado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/error.AppError'
+        "500":
+          description: Erro interno do servidor
+          schema:
+            $ref: '#/definitions/error.AppError'
+      summary: Alterar senha do usuário logado
       tags:
       - Usuários
   /usuarios/login:

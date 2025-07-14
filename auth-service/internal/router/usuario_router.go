@@ -37,5 +37,11 @@ func getUsuarioRoutes() []Route {
 			HandlerFunc: handler.HandleAlterarSenhaUsuarioLogado,
 			HasAuth:     true,
 		},
+		{
+			Path: "/:id",
+			Method:      "DELETE",
+			HandlerFunc: handler.HandleDeletarUsuario,
+			HasAuth:     true,
+		},
 	}
 }

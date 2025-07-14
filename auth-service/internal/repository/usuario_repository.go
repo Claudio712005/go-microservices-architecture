@@ -13,6 +13,7 @@ type UsuarioRepository interface {
 	EditarUsuario(usuario domain.Usuario) (*domain.Usuario, error)
 	AtualizarSenha(usuario domain.Usuario) (*domain.Usuario, error)
 	BuscarSenha(id uint32) (string, error)
+	DeletarUsuario(id uint32) error
 }
 
 type usuarioRepository struct {
@@ -94,4 +95,17 @@ func (r *usuarioRepository) BuscarSenha(id uint32) (string, error) {
 	}
 
 	return usuario.Senha, nil
+}
+
+// DeletarUsuario remove um usuário do repositório pelo ID
+func (r *usuarioRepository) DeletarUsuario(id uint32) error {
+	if id == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	if err := r.db.Delete(&domain.Usuario{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
