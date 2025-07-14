@@ -340,3 +340,87 @@ func TestAlterarUsuario(t *testing.T) {
 		}
 	})
 }
+
+func TestAlterarSenhaUsuarioLogado(t *testing.T){
+
+	t.Run("Alterar senha com dados válidos", func(t *testing.T) {
+		senhaJSON := []byte(`{
+			"senha_atual": "123456",
+			"senha_nova": "novaSenha123"
+		}`)
+
+		w := performRequest(r, http.MethodPut, "/api/v1/usuarios/senha", senhaJSON, http.Header{
+			"Authorization": []string{"Bearer " + token}})
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Esperado status 200, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Alterar senha com token inválido", func(t *testing.T) {
+		senhaJSON := []byte(`{
+			"senha_atual": "123456",
+			"senha_nova": "novaSenha123"
+		}`)
+
+		w := performRequest(r, http.MethodPut, "/api/v1/usuarios/senha", senhaJSON, http.Header{
+			"Authorization": []string{"Bearer tokenInvalido"}})
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("Esperado status 401, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Alterar senha sem token", func(t *testing.T) {
+		senhaJSON := []byte(`{
+			"senha_atual": "123456",
+			"senha_nova": "novaSenha123"
+		}`)
+
+		w := performRequest(r, http.MethodPut, "/api/v1/usuarios/senha", senhaJSON, nil)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("Esperado status 401, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Alterar senha com dados inválidos", func(t *testing.T) {
+		senhaJSON := []byte(`{
+			"senha_atual": "123456",
+			"senha_nova": "123"
+		}`)
+
+		w := performRequest(r, http.MethodPut, "/api/v1/usuarios/senha", senhaJSON, http.Header{
+			"Authorization": []string{"Bearer " + token}})
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("Esperado status 400, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Message string `json:"message"`
+		}
+
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("Falha ao decodificar resposta JSON: %v", err)
+		}
+
+		if resp.Message == "" {
+			t.Fatal("Mensagem de erro não foi retornada")
+		}
+	})
+
+	t.Run("Alterar senha com senha atual incorreta", func(t *testing.T) {
+		senhaJSON := []byte(`{
+			"senha_atual": "senhaIncorreta",
+			"senha_nova": "novaSenha123"
+		}`)
+
+		w := performRequest(r, http.MethodPut, "/api/v1/usuarios/senha", senhaJSON, http.Header{
+			"Authorization": []string{"Bearer " + token}})
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("Esperado status 403, obtido %d – body: %s", w.Code, w.Body.String())
+		}
+	})
+}

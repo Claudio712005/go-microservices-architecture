@@ -235,3 +235,76 @@ func HandleAlterarUsuario(c *gin.Context) {
 
 	response.OK(c, *usuarioSalvo)
 }
+
+// HandleAlterarSenhaUsuarioLogado godoc: Alterar senha do usuário logado
+// @Summary Alterar senha do usuário logado
+// @Description Altera a senha do usuário logado
+// @Tags Usuários
+// @Accept json
+// @Produce json
+// @Param senha body domain.Senha true "Nova senha do usuário"
+// @Success 200 {object} schema.MessageEnvelope "Senha atualizada com sucesso"
+// @Failure 400 {object} error.AppError "Requisição inválida"
+// @Failure 401 {object} error.AppError "Token inválido ou expirado"
+// @Failure 403 {object} error.AppError "Acesso negado"
+// @Failure 404 {object} error.AppError "Usuário não encontrado"
+// @Failure 500 {object} error.AppError "Erro interno do servidor"
+// @Router /usuarios/logado/senha [put]
+// HandleAlterarSenhaUsuarioLogado é o handler para alterar a senha do usuário logado
+func HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
+	idToken, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
+	if err != nil {
+		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
+	}
+
+	repositorio := repository.NewUsuarioRepository(config.DB)
+	senhaHash, err := repositorio.BuscarSenha(idToken)
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário no banco de dados", err))
+		return
+	}
+
+	var senha domain.Senha
+	if err := c.ShouldBindJSON(&senha); err != nil {
+		c.Error(error.Validation("INVALID_BODY", "corpo da requisição inválido", err))
+		return
+	}
+
+	if err := senha.Validar(); err != nil {
+		c.Error(error.Validation("INVALID_INPUT", err.Error(), err))
+		return
+	}
+
+	if err := senha.ValidarSenha(senhaHash); err != nil {
+		c.Error(error.Forbidden("INVALID_PASSWORD", "senha incorretas", err))
+		return
+	}
+
+	senha.SenhaNova, err = security.CriptografarSenha(senha.SenhaNova)
+	if err != nil {
+		c.Error(error.Internal("ENCRYPTION_ERROR", "erro ao criptografar a nova senha", err))
+		return
+	}
+
+	if _, err := repositorio.AtualizarSenha(domain.Usuario{
+		ID:    idToken,
+		Senha: senha.SenhaNova,
+	}); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao atualizar senha no banco de dados", err))
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message": "Senha atualizada com sucesso",
+	})
+
+}

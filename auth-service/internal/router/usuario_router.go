@@ -31,5 +31,11 @@ func getUsuarioRoutes() []Route {
 			HandlerFunc: handler.HandleAlterarUsuario,
 			HasAuth:     true,
 		}, 
+		{
+			Path: "/senha",
+			Method:      "PUT",
+			HandlerFunc: handler.HandleAlterarSenhaUsuarioLogado,
+			HasAuth:     true,
+		},
 	}
 }

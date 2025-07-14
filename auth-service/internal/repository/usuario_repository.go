@@ -11,6 +11,8 @@ type UsuarioRepository interface {
 	BuscarUsuarioPorEmail(email string) (*domain.Usuario, error)
 	BuscarUsuarioPorID(id uint32) (*domain.Usuario, error)
 	EditarUsuario(usuario domain.Usuario) (*domain.Usuario, error)
+	AtualizarSenha(usuario domain.Usuario) (*domain.Usuario, error)
+	BuscarSenha(id uint32) (string, error)
 }
 
 type usuarioRepository struct {
@@ -69,4 +71,27 @@ func (r *usuarioRepository) EditarUsuario(usuario domain.Usuario) (*domain.Usuar
 
 
 	return &usuario, nil
+}
+
+// AtualizarSenha atualiza a senha de um usuário no repositório
+func (r *usuarioRepository) AtualizarSenha(usuario domain.Usuario) (*domain.Usuario, error) {
+	if usuario.ID == 0 {
+		return &domain.Usuario{}, gorm.ErrRecordNotFound
+	}
+
+	if err := r.db.Model(&domain.Usuario{}).Where("id = ?", usuario.ID).Update("senha", usuario.Senha).Error; err != nil {
+		return &domain.Usuario{}, err
+	}
+
+	return &usuario, nil
+}
+
+// BuscarSenha busca a senha de um usuário pelo ID
+func (r *usuarioRepository) BuscarSenha(id uint32) (string, error) {
+	var usuario domain.Usuario
+	if err := r.db.Select("senha").First(&usuario, id).Error; err != nil {
+		return "", err
+	}
+
+	return usuario.Senha, nil
 }
