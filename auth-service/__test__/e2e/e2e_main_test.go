@@ -17,15 +17,15 @@ func setUpRoutes() {
     r = gin.New()    
     r.Use(gin.Recovery()) 
 
-    router.SetupRoutes(r)
+    router.SetupRoutes(r, nil)
 }
 
 func TestMain(m *testing.M) {
     os.Setenv("APP_ENV", "test")
 
-    setUpRoutes()
-    
     config.Load()
+
+    setUpRoutes()
 
     code := m.Run()
 
