@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/mq"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,7 @@ type Route struct {
 }
 
 // SetupRoutes inicializa as rotas da aplicação
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, bus mq.EventBus) {
 
 	r.Use(middleware.RecoveryMiddleware())
 	r.Use(middleware.ErrorMiddleware())
@@ -22,7 +23,7 @@ func SetupRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 
 	userGroup := v1.Group("/usuarios")
-	registerRoutes(userGroup, getUsuarioRoutes())
+	registerRoutes(userGroup, getUsuarioRoutes(bus))
 }
 
 func registerRoutes(g *gin.RouterGroup, routes []Route) {

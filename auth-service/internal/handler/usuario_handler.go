@@ -3,10 +3,12 @@ package handler
 import (
 	"fmt"
 	"strconv"
+	"time"
 
-	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/config"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/domain"
+	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/mq"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/repository"
+	"github.com/Claudio712005/go-microservices-architecture/auth-service/internal/schema"
 	_ "github.com/Claudio712005/go-microservices-architecture/auth-service/internal/schema"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/error"
 	"github.com/Claudio712005/go-microservices-architecture/auth-service/pkg/response"
@@ -14,6 +16,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+type UsuarioHandler struct {
+	repo repository.UsuarioRepository
+	bus  mq.EventBus
+}
+
+func NewUsuarioHandler(repo repository.UsuarioRepository, bus mq.EventBus) *UsuarioHandler {
+	return &UsuarioHandler{
+		repo: repo,
+		bus:  bus,
+	}
+}
 
 // HandleCadastrarUsuario godoc: Cadastrar um novo usuário
 // @Summary Cadastrar um novo usuário
@@ -28,7 +42,7 @@ import (
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios [post]
 // HandleCadastrarUsuario é o handler para cadastrar um usuário
-func HandleCadastrarUsuario(c *gin.Context) {
+func (h *UsuarioHandler) HandleCadastrarUsuario(c *gin.Context) {
 
 	var usuario domain.Usuario
 	if err := c.ShouldBindJSON(&usuario); err != nil {
@@ -41,9 +55,7 @@ func HandleCadastrarUsuario(c *gin.Context) {
 		return
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-
-	usuarioExiste, err := repositorio.BuscarUsuarioPorEmail(usuario.Email)
+	usuarioExiste, err := h.repo.BuscarUsuarioPorEmail(usuario.Email)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário por e-mail no banco de dados", err))
 		return
@@ -59,9 +71,21 @@ func HandleCadastrarUsuario(c *gin.Context) {
 		return
 	}
 
-	if usuario.ID, err = repositorio.CadastrarUsuario(usuario); err != nil {
+	if usuario.ID, err = h.repo.CadastrarUsuario(usuario); err != nil {
 		c.Error(error.Internal("DATABASE_ERROR", "erro ao cadastrar usuário no banco de dados", err))
 		return
+	}
+
+	evt := schema.UsuarioCreated{
+		ID:        usuario.ID,
+		Email:     usuario.Email,
+		CreatedAt: time.Now(),
+	}
+
+	if h.bus != nil {
+		if err := h.bus.PublishUserCreated(c.Request.Context(), evt); err != nil {
+			c.Error(error.Internal("EVENT_PUBLISH_ERROR", "usuário criado mas não foi possível publicar o evento", err))
+		}
 	}
 
 	response.Created(c, fmt.Sprintf("/usuarios/%d", usuario.ID), gin.H{
@@ -83,7 +107,7 @@ func HandleCadastrarUsuario(c *gin.Context) {
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios/login [post]
 // HandleLoginUsuario é o handler para realizar o login de um usuário
-func HandleLoginUsuario(c *gin.Context) {
+func (h *UsuarioHandler) HandleLoginUsuario(c *gin.Context) {
 	var login domain.Login
 
 	if err := c.ShouldBindJSON(&login); err != nil {
@@ -96,8 +120,7 @@ func HandleLoginUsuario(c *gin.Context) {
 		return
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-	usuario, err := repositorio.BuscarUsuarioPorEmail(login.Email)
+	usuario, err := h.repo.BuscarUsuarioPorEmail(login.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este e-mail", nil))
@@ -138,15 +161,14 @@ func HandleLoginUsuario(c *gin.Context) {
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios/logado [get]
 // HandleBuscarUsuarioLogado é o handler para buscar informações do usuário logado
-func HandleBuscarUsuarioLogado(c *gin.Context) {
+func (h *UsuarioHandler) HandleBuscarUsuarioLogado(c *gin.Context) {
 	idToken, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
 	if err != nil {
 		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
 		return
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-	usuario, err := repositorio.BuscarUsuarioPorID(idToken)
+	usuario, err := h.repo.BuscarUsuarioPorID(idToken)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
@@ -175,7 +197,7 @@ func HandleBuscarUsuarioLogado(c *gin.Context) {
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios/{id} [put]
 // HandleAlterarUsuario é o handler para alterar as informações de um usuário
-func HandleAlterarUsuario(c *gin.Context) {
+func (h *UsuarioHandler) HandleAlterarUsuario(c *gin.Context) {
 	id := c.Param("id")
 
 	idUsuario, err := strconv.ParseUint(id, 10, 64)
@@ -208,9 +230,7 @@ func HandleAlterarUsuario(c *gin.Context) {
 		return
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-
-	usuarioExistente, err := repositorio.BuscarUsuarioPorEmail(usuario.Email)
+	usuarioExistente, err := h.repo.BuscarUsuarioPorEmail(usuario.Email)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário por e-mail no banco de dados", err))
 		return
@@ -221,7 +241,7 @@ func HandleAlterarUsuario(c *gin.Context) {
 		return
 	}
 
-	usuarioSalvo, err := repositorio.EditarUsuario(usuario)
+	usuarioSalvo, err := h.repo.EditarUsuario(usuario)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
@@ -251,14 +271,13 @@ func HandleAlterarUsuario(c *gin.Context) {
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios/logado/senha [put]
 // HandleAlterarSenhaUsuarioLogado é o handler para alterar a senha do usuário logado
-func HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
+func (h *UsuarioHandler) HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
 	idToken, err := security.ExtrairUsuarioID(c.GetHeader("Authorization"))
 	if err != nil {
 		c.Error(error.Unauthorized("INVALID_TOKEN", "token inválido ou expirado", err))
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-	senhaHash, err := repositorio.BuscarSenha(idToken)
+	senhaHash, err := h.repo.BuscarSenha(idToken)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -291,7 +310,7 @@ func HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
 		return
 	}
 
-	if _, err := repositorio.AtualizarSenha(domain.Usuario{
+	if _, err := h.repo.AtualizarSenha(domain.Usuario{
 		ID:    idToken,
 		Senha: senha.SenhaNova,
 	}); err != nil {
@@ -324,8 +343,8 @@ func HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
 // @Failure 500 {object} error.AppError "Erro interno do servidor"
 // @Router /usuarios/{id} [delete]
 // HandleDeletarUsuario é o handler para deletar um usuário
-func HandleDeletarUsuario(c *gin.Context) {
-	
+func (h *UsuarioHandler) HandleDeletarUsuario(c *gin.Context) {
+
 	id := c.Param("id")
 
 	idUsuario, err := strconv.ParseUint(id, 10, 64)
@@ -345,8 +364,7 @@ func HandleDeletarUsuario(c *gin.Context) {
 		return
 	}
 
-	repositorio := repository.NewUsuarioRepository(config.DB)
-	if err := repositorio.DeletarUsuario(uint32(idUsuario)); err != nil {
+	if err := h.repo.DeletarUsuario(uint32(idUsuario)); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
 			return

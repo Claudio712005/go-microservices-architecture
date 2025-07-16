@@ -21,6 +21,7 @@ func findRepoRoot() string {
 	}
 }
 
+// LoadEnv carrega as variáveis de ambiente a partir de arquivos .env
 func LoadEnv() {
 
 	env := os.Getenv("APP_ENV")
