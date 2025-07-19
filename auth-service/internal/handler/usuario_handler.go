@@ -82,9 +82,25 @@ func (h *UsuarioHandler) HandleCadastrarUsuario(c *gin.Context) {
 		CreatedAt: time.Now(),
 	}
 
+	auditEvt := schema.UserAuditEvent{
+		EventType:   "user.created",
+		UserID:      usuario.ID,
+		OldUserData: &domain.Usuario{},
+		NewUserData: &domain.Usuario{
+			ID:    usuario.ID,
+			Nome:  usuario.Nome,
+			Email: usuario.Email,
+			Senha: "--",
+		},
+	}
+
 	if h.bus != nil {
 		if err := h.bus.PublishUserCreated(c.Request.Context(), evt); err != nil {
 			c.Error(error.Internal("EVENT_PUBLISH_ERROR", "usuário criado mas não foi possível publicar o evento", err))
+		}
+
+		if err := h.bus.PublishAuditEvent(c.Request.Context(), auditEvt); err != nil {
+			c.Error(error.Internal("AUDIT_EVENT_PUBLISH_ERROR", "evento de auditoria não foi publicado", err))
 		}
 	}
 
@@ -241,6 +257,16 @@ func (h *UsuarioHandler) HandleAlterarUsuario(c *gin.Context) {
 		return
 	}
 
+	usuarioAntigo, err := h.repo.BuscarUsuarioPorID(usuario.ID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Error(error.NotFound("USER_NOT_FOUND", "usuário não encontrado com este ID", nil))
+			return
+		}
+		c.Error(error.Internal("DATABASE_ERROR", "erro ao buscar usuário no banco de dados", err))
+		return
+	}
+
 	usuarioSalvo, err := h.repo.EditarUsuario(usuario)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -249,6 +275,28 @@ func (h *UsuarioHandler) HandleAlterarUsuario(c *gin.Context) {
 		}
 		c.Error(error.Internal("DATABASE_ERROR", "erro ao atualizar usuário no banco de dados", err))
 		return
+	}
+
+	auditEvt := schema.UserAuditEvent{
+		EventType:   "user.updated",
+		UserID:      usuarioSalvo.ID,
+		OldUserData: &domain.Usuario{
+			ID:    usuario.ID,
+			Nome:  usuarioAntigo.Nome,
+			Email: usuarioAntigo.Email,
+		},
+		NewUserData: &domain.Usuario{
+			ID:    usuario.ID,
+			Nome:  usuario.Nome,
+			Email: usuario.Email,
+		},
+	}
+
+	if h.bus != nil {
+		if err := h.bus.PublishAuditEvent(c.Request.Context(), auditEvt); err != nil {
+			c.Error(error.Internal("AUDIT_EVENT_PUBLISH_ERROR", "evento de auditoria não foi publicado", err))
+			return
+		}
 	}
 
 	usuarioSalvo.Senha = ""
@@ -320,6 +368,26 @@ func (h *UsuarioHandler) HandleAlterarSenhaUsuarioLogado(c *gin.Context) {
 		}
 		c.Error(error.Internal("DATABASE_ERROR", "erro ao atualizar senha no banco de dados", err))
 		return
+	}
+
+	auditEvt := schema.UserAuditEvent{
+		EventType:   "user.password_changed",
+		UserID:      idToken,
+		OldUserData: &domain.Usuario{
+			ID:    idToken,
+			Senha: "--",
+		},
+		NewUserData: &domain.Usuario{
+			ID:    idToken,
+			Senha: "*******",
+		},
+	}
+
+	if h.bus != nil {
+		if err := h.bus.PublishAuditEvent(c.Request.Context(), auditEvt); err != nil {
+			c.Error(error.Internal("AUDIT_EVENT_PUBLISH_ERROR", "evento de auditoria não foi publicado", err))
+			return
+		}
 	}
 
 	response.OK(c, gin.H{

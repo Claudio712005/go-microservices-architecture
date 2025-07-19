@@ -16,7 +16,9 @@ type RabbitBus struct {
 }
 
 const exchange = "user.events"
+
 const routingKeyUserCreated = "user.created"
+const routingKeyAuditEvent = "user.audit"
 
 // NewRabbitBus cria uma nova instância do RabbitBus.
 func NewRabbitBus(url string) (EventBus, error) {
@@ -58,6 +60,30 @@ func (r *RabbitBus) PublishUserCreated(ctx context.Context, evt schema.UsuarioCr
     return r.ch.Publish(
         exchange,
         routingKeyUserCreated,
+        false,
+        false,
+        amqp.Publishing{
+            ContentType:  "application/json",
+            Body:         body,
+            Timestamp:    time.Now(),
+            DeliveryMode: amqp.Persistent,
+            Headers:      headers,
+        },
+    )
+}
+
+// PublishAuditEvent publica um evento de auditoria no RabbitMQ.
+func (r *RabbitBus) PublishAuditEvent(ctx context.Context, evt schema.UserAuditEvent) error {
+    body, _ := json.Marshal(evt)
+
+    headers := amqp.Table{}
+    if trace, ok := ctx.Value("trace_id").(string); ok {
+        headers["trace_id"] = trace
+    }
+
+    return r.ch.Publish(
+        exchange,
+        routingKeyAuditEvent,
         false,
         false,
         amqp.Publishing{

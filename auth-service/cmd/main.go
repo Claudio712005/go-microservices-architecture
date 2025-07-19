@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -22,7 +23,11 @@ func main() {
 
 	config.Load()
 
-	bus, err := mq.NewRabbitBus(os.Getenv("RABBITMQ_URL"))
+	user := os.Getenv("AMQP_USER")
+	pass := os.Getenv("AMQP_PASSWORD")
+	host := os.Getenv("AMQP_URL")
+
+	bus, err := mq.NewRabbitBus(fmt.Sprintf("amqp://%s:%s@%s/", user, pass, host))
 	if err != nil {
 		log.Fatalf("erro ao conectar RabbitMQ: %v", err)
 	}
