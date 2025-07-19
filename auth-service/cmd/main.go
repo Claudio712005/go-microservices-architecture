@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/Claudio712005/go-microservices-architecture/auth-service/docs"
@@ -29,10 +28,13 @@ func main() {
 
 	bus, err := mq.NewRabbitBus(fmt.Sprintf("amqp://%s:%s@%s/", user, pass, host))
 	if err != nil {
-		log.Fatalf("erro ao conectar RabbitMQ: %v", err)
+		fmt.Printf("erro ao conectar RabbitMQ: %v", err)
 	}
 
-	defer bus.Close()
+	if bus != nil {
+		defer bus.Close()
+	}
+	
 	route := gin.Default()
 
 	route.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
