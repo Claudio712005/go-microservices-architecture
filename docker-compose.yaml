@@ -31,12 +31,32 @@ services:
       timeout: 5s
       retries: 5
 
+  notification-service:
+    image: clau2005/notification-service:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    environment:
+      AMQP_USER: ${AMQP_USER}
+      AMQP_PASSWORD: ${AMQP_PASSWORD}
+      AMQP_URL: rabbitmq:5672
+      ROOT_EMAIL: ${ROOT_EMAIL}
+      ROOT_EMAIL_PASSWORD: ${ROOT_EMAIL_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+
   auth-service:
     image: clau2005/auth-service:latest
     depends_on:
       mysql:
         condition: service_healthy
       rabbitmq:
+        condition: service_started
+      notification-service:
         condition: service_started
     ports:
       - "8080:8080"
@@ -51,7 +71,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       AMQP_USER: ${AMQP_USER}
       AMQP_PASSWORD: ${AMQP_PASSWORD}
-      AMQP_URL: ${AMQP_URL}
+      AMQP_URL: rabbitmq
 
 volumes:
   mysql_data:
