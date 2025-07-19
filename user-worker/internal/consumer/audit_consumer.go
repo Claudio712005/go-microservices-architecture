@@ -103,7 +103,7 @@ func (c *AuditConsumer) process(d amqp.Delivery) {
 		return
 	}
 
-	service := service.NewAuditService(*repository.NewAudditRepository(c.db))
+	service := service.NewAuditService(repository.NewAuditRepository(c.db))
 	if err := service.RegistryNewAudit(&body); err != nil {
 		log.Printf("Erro ao registrar evento de auditoria: %v", err)
 		return

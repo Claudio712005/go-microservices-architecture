@@ -6,17 +6,21 @@ import (
 )
 
 // AuditRepository é a estrutura que implementa o repositório de auditoria.
-type AuditRepository struct {
+type AuditRepository interface {
+	RegistryNewAudit(event *domain.AuditEvent) error
+}
+
+type auditRepository struct {
 	db *gorm.DB
 }
 
 // NewAuditRepository cria uma nova instância de AuditRepository.
-func NewAudditRepository(db *gorm.DB) *AuditRepository {
-	return &AuditRepository{db: db}
+func NewAuditRepository(db *gorm.DB) AuditRepository {
+	return &auditRepository{db: db}
 }
 
 // RegistryNewAudit registra um novo evento de auditoria no banco de dados.
-func (r *AuditRepository) RegistryNewAudit(event *domain.AuditEvent) error {
+func (r *auditRepository) RegistryNewAudit(event *domain.AuditEvent) error {
 	if err := r.db.Create(event).Error; err != nil {
 		return err
 	}
