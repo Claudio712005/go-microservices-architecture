@@ -1,3 +1,17 @@
+version: "3.9"
+
+x-amqp-env: &amqp-env
+  AMQP_USER: ${AMQP_USER}
+  AMQP_PASSWORD: ${AMQP_PASSWORD}
+  AMQP_URL: rabbitmq:5672
+
+x-db-env: &db-env
+  DB_NAME: ${DB_NAME}
+  DB_USER: ${DB_USER}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_HOST: ${DB_HOST}
+  DB_PORT: ${DB_PORT}
+
 services:
   mysql:
     image: mysql:8
@@ -41,13 +55,24 @@ services:
     ports:
       - "8081:8081"
     environment:
-      AMQP_USER: ${AMQP_USER}
-      AMQP_PASSWORD: ${AMQP_PASSWORD}
-      AMQP_URL: rabbitmq:5672
+      <<: *amqp-env
       ROOT_EMAIL: ${ROOT_EMAIL}
       ROOT_EMAIL_PASSWORD: ${ROOT_EMAIL_PASSWORD}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
+
+  user-worker:
+    image: clau2005/user-worker:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    environment:
+      <<: [*amqp-env, *db-env]
+      JWT_SECRET: ${JWT_SECRET}
 
   auth-service:
     image: clau2005/auth-service:latest
@@ -61,17 +86,10 @@ services:
     ports:
       - "8080:8080"
     environment:
+      <<: [*amqp-env, *db-env]
       APP_ENV: dev
-      DB_NAME: ${DB_NAME}
       DB_NAME_TEST: ${DB_NAME_TEST}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
       JWT_SECRET: ${JWT_SECRET}
-      AMQP_USER: ${AMQP_USER}
-      AMQP_PASSWORD: ${AMQP_PASSWORD}
-      AMQP_URL: rabbitmq
 
 volumes:
   mysql_data:

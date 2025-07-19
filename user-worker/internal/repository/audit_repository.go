@@ -8,6 +8,7 @@ import (
 // AuditRepository é a estrutura que implementa o repositório de auditoria.
 type AuditRepository interface {
 	RegistryNewAudit(event *domain.AuditEvent) error
+	GetAuditByUserID(userID uint32) ([]domain.AuditEvent, error)
 }
 
 type auditRepository struct {
@@ -25,4 +26,17 @@ func (r *auditRepository) RegistryNewAudit(event *domain.AuditEvent) error {
 		return err
 	}
 	return nil
+}
+
+// GetAuditByUserID recupera os eventos de auditoria para um usuário específico.
+func (r *auditRepository) GetAuditByUserID(userID uint32) ([]domain.AuditEvent, error) {
+	var audits []domain.AuditEvent
+	if err := r.db.
+		Preload("Changes").
+		Where("user_id = ?", userID).
+		Find(&audits).Error; err != nil {
+		return nil, err
+	}
+
+	return audits, nil
 }
