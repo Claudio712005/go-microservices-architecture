@@ -3,7 +3,7 @@ version: "3.9"
 x-amqp-env: &amqp-env
   AMQP_USER: ${AMQP_USER}
   AMQP_PASSWORD: ${AMQP_PASSWORD}
-  AMQP_URL: rabbitmq:5672
+  AMQP_URL: rabbitmq
 
 x-db-env: &db-env
   DB_NAME: ${DB_NAME}
@@ -93,3 +93,4 @@ services:
 
 volumes:
   mysql_data:
+    
