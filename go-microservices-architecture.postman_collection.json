@@ -1,0 +1,232 @@
+{
+	"info": {
+		"_postman_id": "55ab2f39-cde8-4e14-b85b-1cdb5d47a065",
+		"name": "go-microservices-architecture",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "30809359"
+	},
+	"item": [
+		{
+			"name": "auth-service",
+			"item": [
+				{
+					"name": "Cadastro",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": ""
+							}
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"Cláudio da Silva Araújo Filho\",\r\n    \"email\": \"clausilvaaraujo11@gmail.com\",\r\n    \"senha\": \"#Gf123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}{{auth_service_port}}{{version}}/usuarios"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();\r",
+									"const token = response.data.token;\r",
+									"\r",
+									"pm.collectionVariables.set(\"token\", token);\r",
+									"\r",
+									"console.log(\"Token atualizado:\", token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"clausilvaaraujo11@gmail.com\",\r\n    \"senha\": \"#Gf123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}{{auth_service_port}}{{version}}/usuarios/login"
+					},
+					"response": []
+				},
+				{
+					"name": "Logado",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}{{auth_service_port}}{{version}}/usuarios/logado"
+					},
+					"response": []
+				},
+				{
+					"name": "Alterar",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"nome\": \"Cláudio Araújo 123 test novo\",\r\n    \"email\": \"clausilvaaraujo12@gmail.com\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}{{auth_service_port}}{{version}}/usuarios/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar senha",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTMwNDU3ODMsInVzdWFyaW9faWQiOjV9.DUa4VJjiwc1cJxUvHVQ-8xKZOalsDKOHzQhguvqte5s"
+							}
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"senha_nova\": \"#123456\",\r\n    \"senha_atual\": \"#Gf123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8080/api/v1/usuarios/senha"
+					},
+					"response": []
+				},
+				{
+					"name": "Deletar",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"claudio2@gmail.com\",\r\n    \"senha\": \"#123456\"\r\n}"
+						},
+						"url": "{{base_url}}{{auth_service_port}}{{version}}/usuarios/1"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "user-worker",
+			"item": [
+				{
+					"name": "Auditoria",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"claudio2@gmail.com\",\r\n    \"senha\": \"#123456\"\r\n}"
+						},
+						"url": "{{base_url}}{{user_worker_port}}{{version}}/usuario-audit/logado"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "version",
+			"value": "/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "base_url",
+			"value": "http://localhost:",
+			"type": "string"
+		},
+		{
+			"key": "auth_service_port",
+			"value": "8080",
+			"type": "string"
+		},
+		{
+			"key": "user_worker_port",
+			"value": "8082",
+			"type": "string"
+		}
+	]
+}
